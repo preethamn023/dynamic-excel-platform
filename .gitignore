@@ -1,0 +1,29 @@
+# Maven
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Docker volumes
+mysql_data/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+
+# Logs
+*.log
+
+# Test files
+api_test.py
+api_test.js
+puppeteer_test.js

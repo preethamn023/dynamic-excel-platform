@@ -1,0 +1,42 @@
+package com.excel.platform.controller;
+
+import com.excel.platform.dto.CellUpdateDto;
+import com.excel.platform.model.Cell;
+import com.excel.platform.repository.CellRepository;
+import com.excel.platform.service.FormulaRecalculationEngine;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/cells")
+@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+public class CellController {
+
+    private final CellRepository cellRepository;
+    private final FormulaRecalculationEngine recalculationEngine;
+
+    @GetMapping("/sheet/{sheetId}")
+    public ResponseEntity<List<Cell>> getCellsForSheet(@PathVariable Long sheetId) {
+        return ResponseEntity.ok(cellRepository.findBySheetId(sheetId));
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<List<Cell>> updateCell(
+            @RequestParam Long workbookId,
+            @RequestParam Long sheetId,
+            @RequestBody CellUpdateDto updateDto,
+            Authentication authentication) {
+        try {
+            List<Cell> updatedCells = recalculationEngine.updateCellAndRecalculate(workbookId, sheetId, updateDto, authentication.getName());
+            return ResponseEntity.ok(updatedCells);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+}
