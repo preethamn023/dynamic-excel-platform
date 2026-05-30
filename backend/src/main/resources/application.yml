@@ -2,9 +2,12 @@ spring:
   application:
     name: dynamic-excel-platform
   datasource:
+    # Local-dev default. On Railway, MYSQL_URL is injected by the MySQL plugin
+    # (e.g. mysql://user:pass@host:port/db). DataSourceConfig normalises it to
+    # jdbc:mysql://… automatically, so no manual prefix is required.
     url: jdbc:mysql://localhost:3306/dynamic_excel_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: password # Will be provided by environment or default
+    username: ${MYSQLUSER:${SPRING_DATASOURCE_USERNAME:root}}
+    password: ${MYSQLPASSWORD:${SPRING_DATASOURCE_PASSWORD:password}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
