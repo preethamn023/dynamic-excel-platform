@@ -73,14 +73,14 @@ public class CellService {
         }
 
         // 4. Save the cell
-        rootCell = cellRepository.save(rootCell);
+        final Cell savedRootCell = cellRepository.save(rootCell);
 
         // 5. Recalculate formulas
-        List<Cell> updatedCells = recalculateFormulas(sheetId, rootCell);
+        List<Cell> updatedCells = recalculateFormulas(sheetId, savedRootCell);
 
         // Make sure rootCell is included
-        if (updatedCells.stream().noneMatch(c -> c.getId().equals(rootCell.getId()))) {
-            updatedCells.add(0, rootCell);
+        if (updatedCells.stream().noneMatch(c -> c.getId().equals(savedRootCell.getId()))) {
+            updatedCells.add(0, savedRootCell);
         }
 
         // 6. Rebuild dependency graph for the sheet
