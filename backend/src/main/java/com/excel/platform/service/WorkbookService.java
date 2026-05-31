@@ -89,6 +89,9 @@ public class WorkbookService {
 
     @Transactional
     public void deleteWorkbook(Long id) {
+        // Delete audit logs FIRST (they reference both workbook and sheet)
+        auditLogRepository.deleteAll(auditLogRepository.findByWorkbookIdOrderByModifiedDateDesc(id));
+
         // Get all versions for this workbook
         List<WorkbookVersion> versions = workbookVersionRepository.findByWorkbookIdOrderByVersionNumberDesc(id);
 
@@ -110,9 +113,6 @@ public class WorkbookService {
             // Delete sheets for this version
             sheetRepository.deleteAll(sheets);
         }
-
-        // Delete audit logs for this workbook
-        auditLogRepository.deleteAll(auditLogRepository.findByWorkbookIdOrderByModifiedDateDesc(id));
 
         // Delete versions
         workbookVersionRepository.deleteAll(versions);
