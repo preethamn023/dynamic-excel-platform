@@ -56,4 +56,7 @@ public class Cell {
     @JoinColumn(name = "style_id")
     @com.fasterxml.jackson.annotation.JsonIgnore
     private CellStyle style;
+
+    @Version
+    private Long version;
 }

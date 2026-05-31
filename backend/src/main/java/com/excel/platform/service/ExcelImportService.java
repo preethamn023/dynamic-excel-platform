@@ -45,6 +45,7 @@ public class ExcelImportService {
     private final NamedRangeRepository namedRangeRepository;
     private final MergedRegionRepository mergedRegionRepository;
     private final CellStyleRepository cellStyleRepository;
+    private final FormulaDependencyBuilder formulaDependencyBuilder;
 
     @Transactional
     public Workbook importExcelFile(MultipartFile file, String username) throws IOException {
@@ -64,7 +65,7 @@ public class ExcelImportService {
                 .status(VersionStatus.ACTIVE)
                 .createdDate(LocalDateTime.now())
                 .createdBy(username)
-                .fileData(file.getBytes())
+                .fileData(null)
                 .build();
         version = versionRepository.save(version);
 
@@ -103,6 +104,8 @@ public class ExcelImportService {
                 }
                 // Batch save cells
                 cellRepository.saveAll(cellsToSave);
+                // Build formula dependencies for this sheet
+                formulaDependencyBuilder.buildDependenciesForSheet(sheetEntity.getId());
             }
         } catch (Exception e) {
             log.error("Failed to parse workbook", e);

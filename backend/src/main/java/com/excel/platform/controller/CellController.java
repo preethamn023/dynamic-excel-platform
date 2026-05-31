@@ -3,7 +3,7 @@ package com.excel.platform.controller;
 import com.excel.platform.dto.CellUpdateDto;
 import com.excel.platform.model.Cell;
 import com.excel.platform.repository.CellRepository;
-import com.excel.platform.service.FormulaRecalculationEngine;
+import com.excel.platform.service.CellService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 
@@ -18,7 +18,7 @@ import java.util.List;
 public class CellController {
 
     private final CellRepository cellRepository;
-    private final FormulaRecalculationEngine recalculationEngine;
+    private final CellService cellService;
 
     @GetMapping("/sheet/{sheetId}")
     public ResponseEntity<List<Cell>> getCellsForSheet(@PathVariable Long sheetId) {
@@ -31,7 +31,7 @@ public class CellController {
             @RequestParam Long sheetId,
             @RequestBody CellUpdateDto updateDto) {
         try {
-            List<Cell> updatedCells = recalculationEngine.updateCellAndRecalculate(workbookId, sheetId, updateDto, "Anonymous");
+            List<Cell> updatedCells = cellService.updateCell(workbookId, sheetId, updateDto, "Anonymous");
             return ResponseEntity.ok(updatedCells);
         } catch (Exception e) {
             e.printStackTrace();

@@ -28,7 +28,12 @@ export const updateCell = (workbookId, sheetId, cellRef, newValue, isFormula) =>
     });
 };
 
+export const createWorkbook = (name) => api.post('/workbooks/create', { name });
+export const deleteWorkbook = (id) => api.delete(`/workbooks/${id}`);
+
 export const getAuditHistory = (workbookId) => api.get(`/audit/history/${workbookId}`);
 export const downloadWorkbookUrl = (workbookId) => `${BASE_URL}/workbooks/download/${workbookId}`;
+
+export const WS_URL = 'https://dynamic-excel-platform-production.up.railway.app/ws';
 
 export default api;

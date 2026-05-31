@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Box, Tabs, Tab, TextField, Paper, IconButton,
@@ -11,6 +11,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 import { getWorkbook, getSheets, getCells, updateCell, downloadWorkbookUrl } from '../api';
+import useWebSocket from '../hooks/useWebSocket';
 
 // Convert column index (0-based) to Excel-style column name (A, B, ..., Z, AA, AB, ...)
 const getColName = (n) => {
@@ -29,11 +30,13 @@ const SpreadsheetView = () => {
     const [workbook, setWorkbook] = useState(null);
     const [sheets, setSheets] = useState([]);
     const [currentSheetIdx, setCurrentSheetIdx] = useState(0);
+    const [currentSheetId, setCurrentSheetId] = useState(null);
     const [gridData, setGridData] = useState([]);
     const [colDefs, setColDefs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedCellInfo, setSelectedCellInfo] = useState({ ref: '', value: '' });
+    const lastLocalEditRef = useRef(null);
 
     const loadSheetData = useCallback(async (sheetId) => {
         setLoading(true);
@@ -127,6 +130,7 @@ const SpreadsheetView = () => {
                 setSheets(sheetsList);
 
                 if (sheetsList.length > 0) {
+                    setCurrentSheetId(sheetsList[0].id);
                     await loadSheetData(sheetsList[0].id);
                 } else {
                     setLoading(false);
@@ -142,8 +146,46 @@ const SpreadsheetView = () => {
 
     const handleTabChange = (event, newValue) => {
         setCurrentSheetIdx(newValue);
+        setCurrentSheetId(sheets[newValue].id);
         loadSheetData(sheets[newValue].id);
     };
+
+    const handleWebSocketUpdate = useCallback((updatedCells) => {
+        if (!Array.isArray(updatedCells) || updatedCells.length === 0) return;
+
+        // Check if this is an echo of our own edit
+        const lastEdit = lastLocalEditRef.current;
+        if (lastEdit && Date.now() - lastEdit.timestamp < 2000) {
+            const isEcho = updatedCells.some(uc => {
+                const colName = getColName(uc.colIdx);
+                const ref = `${colName}${uc.rowIdx + 1}`;
+                return ref === lastEdit.cellRef;
+            });
+            if (isEcho) {
+                lastLocalEditRef.current = null;
+                return;
+            }
+        }
+
+        setGridData(prevData => {
+            const newGridData = [...prevData];
+            updatedCells.forEach(uc => {
+                const cName = getColName(uc.colIdx);
+                if (newGridData[uc.rowIdx]) {
+                    newGridData[uc.rowIdx] = { ...newGridData[uc.rowIdx] };
+                    newGridData[uc.rowIdx][cName] = {
+                        rawValue: uc.rawValue,
+                        calculatedValue: uc.calculatedValue,
+                        formulaExpression: uc.formulaExpression,
+                        status: uc.formulaStatus
+                    };
+                }
+            });
+            return newGridData;
+        });
+    }, []);
+
+    const { connected } = useWebSocket(workbookId, currentSheetId, handleWebSocketUpdate);
 
     const handleCellClicked = (e) => {
         if (!e.colDef.field) return;
@@ -167,14 +209,16 @@ const SpreadsheetView = () => {
         const cellRef = `${colField}${e.rowIndex + 1}`;
         const isFormula = typedValue && String(typedValue).startsWith('=');
 
+        lastLocalEditRef.current = { cellRef, timestamp: Date.now() };
+
         try {
-            const currentSheetId = sheets[currentSheetIdx].id;
-            const res = await updateCell(workbookId, currentSheetId, cellRef, typedValue, isFormula);
+            const activeSheetId = sheets[currentSheetIdx].id;
+            const res = await updateCell(workbookId, activeSheetId, cellRef, typedValue, isFormula);
             const updatedCells = Array.isArray(res.data) ? res.data : [];
 
             const newGridData = [...gridData];
             updatedCells.forEach(uc => {
-                if (uc.sheet && uc.sheet.id === currentSheetId) {
+                if (uc.sheet && uc.sheet.id === activeSheetId) {
                     const cName = getColName(uc.colIdx);
                     if (newGridData[uc.rowIdx]) {
                         newGridData[uc.rowIdx][cName] = {
@@ -208,9 +252,22 @@ const SpreadsheetView = () => {
                     </IconButton>
                 </Tooltip>
 
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 2, color: 'primary.main', minWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 1, color: 'primary.main', minWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {workbook?.fileName || 'Loading...'}
                 </Typography>
+
+                <Tooltip title={connected ? 'Connected - Real-time updates active' : 'Disconnected - Changes may not sync'}>
+                    <Box
+                        sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            backgroundColor: connected ? '#4caf50' : '#f44336',
+                            mr: 1,
+                            flexShrink: 0,
+                        }}
+                    />
+                </Tooltip>
 
                 <Tooltip title="Download Excel">
                     <IconButton color="primary" component="a" href={downloadWorkbookUrl(workbookId)} target="_blank" size="small">

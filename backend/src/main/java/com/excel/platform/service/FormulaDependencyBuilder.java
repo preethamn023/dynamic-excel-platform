@@ -5,7 +5,9 @@ import com.excel.platform.model.FormulaDependency;
 import com.excel.platform.repository.CellRepository;
 import com.excel.platform.repository.FormulaDependencyRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FormulaDependencyBuilder {
 
     private final FormulaDependencyRepository dependencyRepository;
@@ -48,4 +51,14 @@ public class FormulaDependencyBuilder {
         // Deduplicate and save
         dependencyRepository.saveAll(dependenciesToSave);
     }
+
+    @Transactional
+    public void rebuildDependenciesForSheet(Long sheetId) {
+        // First delete existing dependencies for cells in this sheet
+        dependencyRepository.deleteBySourceCellSheetId(sheetId);
+        // Then rebuild
+        buildDependenciesForSheet(sheetId);
+        log.debug("Rebuilt formula dependencies for sheet {}", sheetId);
+    }
 }
+

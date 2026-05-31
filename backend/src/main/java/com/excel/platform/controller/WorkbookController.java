@@ -8,6 +8,7 @@ import com.excel.platform.repository.WorkbookRepository;
 import com.excel.platform.repository.WorkbookVersionRepository;
 import com.excel.platform.service.ExcelExportService;
 import com.excel.platform.service.ExcelImportService;
+import com.excel.platform.service.WorkbookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/workbooks")
@@ -29,6 +31,7 @@ public class WorkbookController {
     private final WorkbookRepository workbookRepository;
     private final WorkbookVersionRepository versionRepository;
     private final SheetRepository sheetRepository;
+    private final WorkbookService workbookService;
 
     @PostMapping("/upload")
     public ResponseEntity<Workbook> uploadWorkbook(@RequestParam("file") MultipartFile file) {
@@ -74,5 +77,18 @@ public class WorkbookController {
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<Workbook> createWorkbook(@RequestBody Map<String, String> body) {
+        String name = body.getOrDefault("name", "Untitled Workbook");
+        Workbook workbook = workbookService.createEmptyWorkbook(name);
+        return ResponseEntity.ok(workbook);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWorkbook(@PathVariable Long id) {
+        workbookService.deleteWorkbook(id);
+        return ResponseEntity.ok().build();
     }
 }

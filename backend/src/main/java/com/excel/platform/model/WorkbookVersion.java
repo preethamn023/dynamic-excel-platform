@@ -34,7 +34,8 @@ public class WorkbookVersion {
 
     private String createdBy;
     
-    // Store binary payload if needed for fast rollback or caching
+    // Deprecated: No longer written to. Will be removed in a future migration.
+    @Deprecated
     @Lob
     @Column(columnDefinition="LONGBLOB")
     private byte[] fileData;
