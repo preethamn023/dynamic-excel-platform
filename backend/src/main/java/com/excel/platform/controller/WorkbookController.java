@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,9 +31,9 @@ public class WorkbookController {
     private final SheetRepository sheetRepository;
 
     @PostMapping("/upload")
-    public ResponseEntity<Workbook> uploadWorkbook(@RequestParam("file") MultipartFile file, Authentication authentication) {
+    public ResponseEntity<Workbook> uploadWorkbook(@RequestParam("file") MultipartFile file) {
         try {
-            Workbook workbook = importService.importExcelFile(file, authentication.getName());
+            Workbook workbook = importService.importExcelFile(file, "Anonymous");
             return ResponseEntity.ok(workbook);
         } catch (Exception e) {
             e.printStackTrace();

@@ -6,7 +6,7 @@ import com.excel.platform.repository.CellRepository;
 import com.excel.platform.service.FormulaRecalculationEngine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,10 +29,9 @@ public class CellController {
     public ResponseEntity<List<Cell>> updateCell(
             @RequestParam Long workbookId,
             @RequestParam Long sheetId,
-            @RequestBody CellUpdateDto updateDto,
-            Authentication authentication) {
+            @RequestBody CellUpdateDto updateDto) {
         try {
-            List<Cell> updatedCells = recalculationEngine.updateCellAndRecalculate(workbookId, sheetId, updateDto, authentication.getName());
+            List<Cell> updatedCells = recalculationEngine.updateCellAndRecalculate(workbookId, sheetId, updateDto, "Anonymous");
             return ResponseEntity.ok(updatedCells);
         } catch (Exception e) {
             e.printStackTrace();
