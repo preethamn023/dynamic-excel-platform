@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// In production, VITE_API_URL will be set to the deployed backend URL.
-// In local development it falls back to localhost:8081
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
+// Set the base URL directly to the live backend
+const BASE_URL = 'https://dynamic-excel-platform-production.up.railway.app/api';
 
 const api = axios.create({
     baseURL: BASE_URL,
