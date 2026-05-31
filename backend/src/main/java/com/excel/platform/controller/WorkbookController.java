@@ -33,7 +33,7 @@ public class WorkbookController {
     private final SheetRepository sheetRepository;
     private final WorkbookService workbookService;
 
-    @PostMapping("/upload")
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Workbook> uploadWorkbook(@RequestParam("file") MultipartFile file) {
         try {
             Workbook workbook = importService.importExcelFile(file, "Anonymous");
@@ -79,7 +79,7 @@ public class WorkbookController {
         }
     }
 
-    @PostMapping("/create")
+    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Workbook> createWorkbook(@RequestBody Map<String, String> body) {
         String name = body.getOrDefault("name", "Untitled Workbook");
         Workbook workbook = workbookService.createEmptyWorkbook(name);
