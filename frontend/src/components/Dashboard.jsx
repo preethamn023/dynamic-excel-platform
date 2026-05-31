@@ -23,11 +23,6 @@ const Dashboard = () => {
             setWorkbooks(res.data);
         } catch (e) {
             console.error(e);
-            if (e.response && e.response.status === 403) {
-                // Token might be expired
-                localStorage.removeItem('token');
-                window.location.reload();
-            }
         }
     };
 
