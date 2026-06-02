@@ -122,7 +122,7 @@ const SpreadsheetView = () => {
                                 if (rowIdx >= v.firstRow && rowIdx <= v.lastRow) {
                                     return {
                                         component: 'agSelectCellEditor',
-                                        params: { values: ['', ...v.options] }
+                                        params: { values: v.options }
                                     };
                                 }
                             }
