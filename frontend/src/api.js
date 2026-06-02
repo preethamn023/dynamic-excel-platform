@@ -33,6 +33,7 @@ export const deleteWorkbook = (id) => api.delete(`/workbooks/${id}`);
 
 export const getAuditHistory = (workbookId) => api.get(`/audit/history/${workbookId}`);
 export const downloadWorkbookUrl = (workbookId) => `${BASE_URL}/workbooks/download/${workbookId}`;
+export const getDataValidations = (sheetId) => api.get(`/validations/sheet/${sheetId}`);
 
 export const WS_URL = 'https://dynamic-excel-platform-production.up.railway.app/ws';
 

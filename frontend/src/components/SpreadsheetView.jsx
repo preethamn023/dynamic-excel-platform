@@ -10,7 +10,7 @@ import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-import { getWorkbook, getSheets, getCells, updateCell, downloadWorkbookUrl } from '../api';
+import { getWorkbook, getSheets, getCells, updateCell, downloadWorkbookUrl, getDataValidations } from '../api';
 import useWebSocket from '../hooks/useWebSocket';
 
 // Convert column index (0-based) to Excel-style column name (A, B, ..., Z, AA, AB, ...)
@@ -36,6 +36,7 @@ const SpreadsheetView = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedCellInfo, setSelectedCellInfo] = useState({ ref: '', value: '' });
+    const [validationMap, setValidationMap] = useState({});
     const lastLocalEditRef = useRef(null);
 
     const loadSheetData = useCallback(async (sheetId) => {
@@ -56,6 +57,32 @@ const SpreadsheetView = () => {
             // Safety cap
             if (maxRow > 3000) maxRow = 3000;
             if (maxCol > 80) maxCol = 80;
+
+            // Fetch data validations for this sheet
+            let validations = [];
+            try {
+                const dvRes = await getDataValidations(sheetId);
+                validations = Array.isArray(dvRes.data) ? dvRes.data : [];
+            } catch (e) {
+                console.warn('Failed to load data validations', e);
+            }
+
+            // Build validation map: key = colIdx, value = [{ firstRow, lastRow, options }]
+            const vMap = {};
+            validations.forEach(dv => {
+                if (dv.validationType === 'LIST' && dv.formula1) {
+                    const options = dv.formula1.split(',').map(o => o.trim());
+                    for (let col = dv.firstCol; col <= dv.lastCol; col++) {
+                        if (!vMap[col]) vMap[col] = [];
+                        vMap[col].push({
+                            firstRow: dv.firstRow,
+                            lastRow: dv.lastRow,
+                            options: options
+                        });
+                    }
+                }
+            });
+            setValidationMap(vMap);
 
             // Build column definitions
             const cols = [
@@ -81,11 +108,71 @@ const SpreadsheetView = () => {
                         if (typeof params.value !== 'object') return String(params.value);
                         const { status, calculatedValue, rawValue, formulaExpression } = params.value;
                         if (status === 'UNSUPPORTED' || status === 'ERROR') {
-                            return formulaExpression || rawValue || '';
+                            return calculatedValue || rawValue || '';
                         }
                         if (calculatedValue !== null && calculatedValue !== undefined) return String(calculatedValue);
                         return rawValue !== null && rawValue !== undefined ? String(rawValue) : '';
-                    }
+                    },
+                    cellEditorSelector: (params) => {
+                        const colIdx = c;
+                        const rowIdx = params.rowIndex;
+                        const colValidations = vMap[colIdx];
+                        if (colValidations) {
+                            for (const v of colValidations) {
+                                if (rowIdx >= v.firstRow && rowIdx <= v.lastRow) {
+                                    return {
+                                        component: 'agSelectCellEditor',
+                                        params: { values: ['', ...v.options] }
+                                    };
+                                }
+                            }
+                        }
+                        return undefined;
+                    },
+                    cellRenderer: (params) => {
+                        if (params.value === null || params.value === undefined) {
+                            const colIdx = c;
+                            const rowIdx = params.rowIndex;
+                            const colValidations = vMap[colIdx];
+                            if (colValidations) {
+                                for (const v of colValidations) {
+                                    if (rowIdx >= v.firstRow && rowIdx <= v.lastRow) {
+                                        return '<span style="color:#999">▼</span>';
+                                    }
+                                }
+                            }
+                            return '';
+                        }
+                        let displayVal = '';
+                        if (typeof params.value !== 'object') {
+                            displayVal = String(params.value);
+                        } else {
+                            const { status, calculatedValue, rawValue, formulaExpression } = params.value;
+                            if (status === 'UNSUPPORTED' || status === 'ERROR') {
+                                displayVal = calculatedValue || rawValue || formulaExpression || '';
+                            } else if (calculatedValue !== null && calculatedValue !== undefined) {
+                                displayVal = String(calculatedValue);
+                            } else {
+                                displayVal = rawValue !== null && rawValue !== undefined ? String(rawValue) : '';
+                            }
+                        }
+                        const colIdx = c;
+                        const rowIdx = params.rowIndex;
+                        const colValidations = vMap[colIdx];
+                        let hasDropdown = false;
+                        if (colValidations) {
+                            for (const v of colValidations) {
+                                if (rowIdx >= v.firstRow && rowIdx <= v.lastRow) {
+                                    hasDropdown = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (hasDropdown) {
+                            return `<span>${displayVal}</span><span style="float:right;color:#999;font-size:10px">▼</span>`;
+                        }
+                        return displayVal;
+                    },
                 });
             }
             setColDefs(cols);
@@ -207,13 +294,19 @@ const SpreadsheetView = () => {
         const typedValue = e.newValue;
         const oldValueObj = e.oldValue;
         const cellRef = `${colField}${e.rowIndex + 1}`;
-        const isFormula = typedValue && String(typedValue).startsWith('=');
+
+        // Handle AG Grid select editor returning value directly
+        const actualValue = typeof typedValue === 'object' ?
+            (typedValue?.rawValue || typedValue?.calculatedValue || '') :
+            String(typedValue || '');
+
+        const isFormula = actualValue && actualValue.startsWith('=');
 
         lastLocalEditRef.current = { cellRef, timestamp: Date.now() };
 
         try {
             const activeSheetId = sheets[currentSheetIdx].id;
-            const res = await updateCell(workbookId, activeSheetId, cellRef, typedValue, isFormula);
+            const res = await updateCell(workbookId, activeSheetId, cellRef, actualValue, isFormula);
             const updatedCells = Array.isArray(res.data) ? res.data : [];
 
             const newGridData = [...gridData];

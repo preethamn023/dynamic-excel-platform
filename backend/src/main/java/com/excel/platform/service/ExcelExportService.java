@@ -1,7 +1,9 @@
 package com.excel.platform.service;
 
 import com.excel.platform.model.*;
+import com.excel.platform.model.DataValidation;
 import com.excel.platform.repository.*;
+import org.apache.poi.ss.util.CellRangeAddressList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -22,6 +24,7 @@ public class ExcelExportService {
     private final CellRepository cellRepository;
     private final CellStyleRepository cellStyleRepository;
     private final MergedRegionRepository mergedRegionRepository;
+    private final DataValidationRepository dataValidationRepository;
 
     public byte[] exportWorkbook(Long workbookId) {
         // 1. Find latest WorkbookVersion
@@ -76,6 +79,20 @@ public class ExcelExportService {
                     poiSheet.addMergedRegion(new CellRangeAddress(
                             mr.getFirstRow(), mr.getLastRow(),
                             mr.getFirstCol(), mr.getLastCol()));
+                }
+
+                // 6. Apply data validations from DB
+                List<DataValidation> validations = dataValidationRepository.findBySheetId(dbSheet.getId());
+                for (DataValidation dv : validations) {
+                    if ("LIST".equals(dv.getValidationType()) && dv.getFormula1() != null) {
+                        org.apache.poi.ss.usermodel.DataValidationHelper dvHelper = poiSheet.getDataValidationHelper();
+                        String[] options = dv.getFormula1().split(",");
+                        org.apache.poi.ss.usermodel.DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(options);
+                        CellRangeAddressList addressList = new CellRangeAddressList(dv.getFirstRow(), dv.getLastRow(), dv.getFirstCol(), dv.getLastCol());
+                        org.apache.poi.ss.usermodel.DataValidation poiDv = dvHelper.createValidation(dvConstraint, addressList);
+                        poiDv.setSuppressDropDownArrow(dv.getShowDropdown() != null && !dv.getShowDropdown());
+                        poiSheet.addValidationData(poiDv);
+                    }
                 }
             }
 

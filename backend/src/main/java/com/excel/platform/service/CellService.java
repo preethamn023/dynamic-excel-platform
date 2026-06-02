@@ -172,11 +172,15 @@ public class CellService {
                                     modifiedCells.add(dbCell);
                                 }
                             } catch (Exception e) {
-                                log.warn("Failed to read back formula result for cell {}: {}", dbCell.getCellRef(), e.getMessage());
-                                dbCell.setFormulaStatus(FormulaStatus.ERROR);
-                                dbCell.setCalculatedValue(null);
-                                cellRepository.save(dbCell);
-                                modifiedCells.add(dbCell);
+                                log.debug("Could not re-evaluate formula for cell {} (may have external refs): {}", dbCell.getCellRef(), e.getMessage());
+                                // Keep existing calculatedValue - don't overwrite with null
+                                // Only mark as error if there's no cached value
+                                if (dbCell.getCalculatedValue() == null || dbCell.getCalculatedValue().isEmpty()) {
+                                    dbCell.setFormulaStatus(FormulaStatus.UNSUPPORTED);
+                                    cellRepository.save(dbCell);
+                                    modifiedCells.add(dbCell);
+                                }
+                                // If there IS a cached value, leave the cell as-is (don't add to modified)
                             }
                         }
                     }

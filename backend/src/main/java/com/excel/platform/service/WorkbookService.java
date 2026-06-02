@@ -26,6 +26,7 @@ public class WorkbookService {
     private final MergedRegionRepository mergedRegionRepository;
     private final NamedRangeRepository namedRangeRepository;
     private final CellStyleRepository cellStyleRepository;
+    private final DataValidationRepository dataValidationRepository;
     private final WebSocketNotificationService webSocketNotificationService;
 
     @Transactional
@@ -105,6 +106,8 @@ public class WorkbookService {
                 cellRepository.deleteAll(cells);
                 // Delete merged regions for this sheet
                 mergedRegionRepository.deleteAll(mergedRegionRepository.findBySheetId(sheet.getId()));
+                // Delete data validations for this sheet
+                dataValidationRepository.deleteAll(dataValidationRepository.findBySheetId(sheet.getId()));
             }
             // Delete named ranges for this version
             namedRangeRepository.deleteAll(namedRangeRepository.findByWorkbookVersionId(version.getId()));

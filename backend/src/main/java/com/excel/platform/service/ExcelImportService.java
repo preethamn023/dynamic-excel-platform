@@ -10,7 +10,9 @@ import com.excel.platform.model.NamedRange;
 import com.excel.platform.model.VersionStatus;
 import com.excel.platform.model.CellDataType;
 import com.excel.platform.model.FormulaStatus;
+import com.excel.platform.model.DataValidation;
 import com.excel.platform.repository.*;
+import org.apache.poi.ss.util.CellRangeAddressList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
@@ -46,6 +48,7 @@ public class ExcelImportService {
     private final MergedRegionRepository mergedRegionRepository;
     private final CellStyleRepository cellStyleRepository;
     private final FormulaDependencyBuilder formulaDependencyBuilder;
+    private final DataValidationRepository dataValidationRepository;
 
     @Transactional
     public Workbook importExcelFile(MultipartFile file, String username) throws IOException {
@@ -106,6 +109,7 @@ public class ExcelImportService {
                 cellRepository.saveAll(cellsToSave);
                 // Build formula dependencies for this sheet
                 formulaDependencyBuilder.buildDependenciesForSheet(sheetEntity.getId());
+                extractDataValidations(poiSheet, sheetEntity);
             }
         } catch (Exception e) {
             log.error("Failed to parse workbook", e);
@@ -200,8 +204,16 @@ public class ExcelImportService {
                     cellEntity.setCalculatedValue(getCellValueAsString(cellValue));
                 } catch (Exception e) {
                     log.warn("Failed to evaluate formula in cell {}: {}", cellRef.formatAsString(), e.getMessage());
-                    cellEntity.setFormulaStatus(FormulaStatus.UNSUPPORTED);
-                    cellEntity.setCalculatedValue(null);
+                    // Try to read the cached/pre-calculated value from Excel
+                    try {
+                        String cachedValue = readCachedFormulaResult(poiCell);
+                        cellEntity.setCalculatedValue(cachedValue);
+                        cellEntity.setFormulaStatus(FormulaStatus.SUPPORTED);
+                    } catch (Exception ex) {
+                        log.warn("Also failed to read cached value for cell {}: {}", cellRef.formatAsString(), ex.getMessage());
+                        cellEntity.setFormulaStatus(FormulaStatus.UNSUPPORTED);
+                        cellEntity.setCalculatedValue(null);
+                    }
                 }
                 break;
             case STRING:
@@ -237,6 +249,87 @@ public class ExcelImportService {
             case BOOLEAN: return String.valueOf(cellValue.getBooleanValue());
             case ERROR: return String.valueOf(cellValue.getErrorValue());
             default: return "";
+        }
+    }
+
+    private String readCachedFormulaResult(org.apache.poi.ss.usermodel.Cell poiCell) {
+        org.apache.poi.ss.usermodel.CellType cachedType = poiCell.getCachedFormulaResultType();
+        switch (cachedType) {
+            case NUMERIC:
+                double numVal = poiCell.getNumericCellValue();
+                if (numVal == Math.floor(numVal) && !Double.isInfinite(numVal)) {
+                    return String.valueOf((long) numVal);
+                }
+                return String.valueOf(numVal);
+            case STRING:
+                return poiCell.getRichStringCellValue().getString();
+            case BOOLEAN:
+                return String.valueOf(poiCell.getBooleanCellValue());
+            case ERROR:
+                return String.valueOf(poiCell.getErrorCellValue());
+            case BLANK:
+                return "";
+            default:
+                return "";
+        }
+    }
+
+    private void extractDataValidations(org.apache.poi.ss.usermodel.Sheet poiSheet, Sheet sheetEntity) {
+        List<DataValidation> validationsToSave = new ArrayList<>();
+        try {
+            List<? extends org.apache.poi.ss.usermodel.DataValidation> validations = poiSheet.getDataValidations();
+            if (validations != null) {
+                for (org.apache.poi.ss.usermodel.DataValidation dv : validations) {
+                    org.apache.poi.ss.usermodel.DataValidationConstraint constraint = dv.getValidationConstraint();
+                    CellRangeAddressList regions = dv.getRegions();
+
+                    String validationType = getValidationTypeName(constraint.getValidationType());
+                    String formula1 = constraint.getFormula1();
+                    String formula2 = constraint.getFormula2();
+                    String[] explicitValues = constraint.getExplicitListValues();
+
+                    // If explicit list values, join them as comma-separated
+                    String optionsList = null;
+                    if (explicitValues != null && explicitValues.length > 0) {
+                        optionsList = String.join(",", explicitValues);
+                    } else if (formula1 != null) {
+                        optionsList = formula1;
+                    }
+
+                    for (CellRangeAddress range : regions.getCellRangeAddresses()) {
+                        validationsToSave.add(DataValidation.builder()
+                                .sheet(sheetEntity)
+                                .firstRow(range.getFirstRow())
+                                .lastRow(range.getLastRow())
+                                .firstCol(range.getFirstColumn())
+                                .lastCol(range.getLastColumn())
+                                .validationType(validationType)
+                                .formula1(optionsList)
+                                .formula2(formula2)
+                                .showDropdown(!dv.getSuppressDropDownArrow())
+                                .build());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to extract data validations: {}", e.getMessage());
+        }
+        if (!validationsToSave.isEmpty()) {
+            dataValidationRepository.saveAll(validationsToSave);
+            log.info("Saved {} data validations for sheet {}", validationsToSave.size(), sheetEntity.getSheetName());
+        }
+    }
+
+    private String getValidationTypeName(int type) {
+        switch (type) {
+            case org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType.LIST: return "LIST";
+            case org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType.INTEGER: return "INTEGER";
+            case org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType.DECIMAL: return "DECIMAL";
+            case org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType.DATE: return "DATE";
+            case org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType.TIME: return "TIME";
+            case org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType.TEXT_LENGTH: return "TEXT_LENGTH";
+            case org.apache.poi.ss.usermodel.DataValidationConstraint.ValidationType.FORMULA: return "FORMULA";
+            default: return "ANY";
         }
     }
 }
