@@ -130,19 +130,23 @@ const SpreadsheetView = () => {
                         return undefined;
                     },
                     cellRenderer: (params) => {
-                        if (params.value === null || params.value === undefined) {
-                            const colIdx = c;
-                            const rowIdx = params.rowIndex;
-                            const colValidations = vMap[colIdx];
-                            if (colValidations) {
-                                for (const v of colValidations) {
-                                    if (rowIdx >= v.firstRow && rowIdx <= v.lastRow) {
-                                        return '<span style="color:#999">▼</span>';
-                                    }
+                        const colIdx = c;
+                        const rowIdx = params.rowIndex;
+                        const colValidations = vMap[colIdx];
+                        let hasDropdown = false;
+                        if (colValidations) {
+                            for (const v of colValidations) {
+                                if (rowIdx >= v.firstRow && rowIdx <= v.lastRow) {
+                                    hasDropdown = true;
+                                    break;
                                 }
                             }
-                            return '';
                         }
+
+                        if (params.value === null || params.value === undefined) {
+                            return hasDropdown ? '▼' : '';
+                        }
+                        
                         let displayVal = '';
                         if (typeof params.value !== 'object') {
                             displayVal = String(params.value);
@@ -156,22 +160,8 @@ const SpreadsheetView = () => {
                                 displayVal = rawValue !== null && rawValue !== undefined ? String(rawValue) : '';
                             }
                         }
-                        const colIdx = c;
-                        const rowIdx = params.rowIndex;
-                        const colValidations = vMap[colIdx];
-                        let hasDropdown = false;
-                        if (colValidations) {
-                            for (const v of colValidations) {
-                                if (rowIdx >= v.firstRow && rowIdx <= v.lastRow) {
-                                    hasDropdown = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (hasDropdown) {
-                            return `<span>${displayVal}</span><span style="float:right;color:#999;font-size:10px">▼</span>`;
-                        }
-                        return displayVal;
+                        
+                        return hasDropdown ? (displayVal ? displayVal + ' ▼' : '▼') : displayVal;
                     },
                 });
             }
