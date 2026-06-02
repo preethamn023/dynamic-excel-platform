@@ -34,13 +34,15 @@ public class WorkbookController {
     private final WorkbookService workbookService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Workbook> uploadWorkbook(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadWorkbook(@RequestParam("file") MultipartFile file) {
         try {
             Workbook workbook = importService.importExcelFile(file, "Anonymous");
             return ResponseEntity.ok(workbook);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            return ResponseEntity.internalServerError().body(sw.toString());
         }
     }
 
