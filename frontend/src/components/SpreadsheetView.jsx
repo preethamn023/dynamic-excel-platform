@@ -326,16 +326,16 @@ const SpreadsheetView = () => {
     };
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflow: 'hidden' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflow: 'hidden', background: '#f5f7fa' }}>
             {/* Top toolbar */}
-            <Paper elevation={1} sx={{ display: 'flex', alignItems: 'center', p: 1, gap: 1, flexShrink: 0, borderRadius: 0 }}>
+            <Paper elevation={0} className="glass-panel" sx={{ display: 'flex', alignItems: 'center', p: 1.5, gap: 1, flexShrink: 0, borderRadius: 0, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                 <Tooltip title="Back to Dashboard">
-                    <IconButton onClick={() => navigate('/')} size="small">
+                    <IconButton onClick={() => navigate('/')} size="small" sx={{ color: '#1e3c72' }}>
                         <ArrowBackIcon />
                     </IconButton>
                 </Tooltip>
 
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 1, color: 'primary.main', minWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Typography variant="subtitle1" className="app-header-title" sx={{ mr: 1, minWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {workbook?.fileName || 'Loading...'}
                 </Typography>
 
@@ -348,18 +348,19 @@ const SpreadsheetView = () => {
                             backgroundColor: connected ? '#4caf50' : '#f44336',
                             mr: 1,
                             flexShrink: 0,
+                            boxShadow: connected ? '0 0 8px #4caf50' : '0 0 8px #f44336'
                         }}
                     />
                 </Tooltip>
 
                 <Tooltip title="Download Excel">
-                    <IconButton color="primary" component="a" href={downloadWorkbookUrl(workbookId)} target="_blank" size="small">
+                    <IconButton sx={{ color: '#1e3c72' }} component="a" href={downloadWorkbookUrl(workbookId)} target="_blank" size="small">
                         <DownloadIcon />
                     </IconButton>
                 </Tooltip>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, ml: 1, gap: 1 }}>
-                    <Typography variant="body2" sx={{ minWidth: 50, fontWeight: 'bold', color: '#555', bgcolor: '#f0f0f0', p: '2px 6px', borderRadius: 1, border: '1px solid #ddd', textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, ml: 2, gap: 1 }}>
+                    <Typography variant="body2" sx={{ minWidth: 50, fontWeight: 600, color: '#1e3c72', bgcolor: 'rgba(30, 60, 114, 0.1)', p: '4px 10px', borderRadius: 2, textAlign: 'center' }}>
                         {selectedCellInfo.ref || 'A1'}
                     </Typography>
                     <TextField
@@ -367,9 +368,8 @@ const SpreadsheetView = () => {
                         size="small"
                         value={selectedCellInfo.value}
                         onChange={() => {}}
-                        InputProps={{ readOnly: true }}
+                        InputProps={{ readOnly: true, sx: { borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.8)' } }}
                         placeholder="Click a cell to see its value or formula"
-                        sx={{ bgcolor: 'white' }}
                     />
                 </Box>
             </Paper>
@@ -383,8 +383,8 @@ const SpreadsheetView = () => {
             <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
                 {loading ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 2 }}>
-                        <CircularProgress />
-                        <Typography color="text.secondary">Loading spreadsheet data...</Typography>
+                        <CircularProgress sx={{ color: '#2a5298' }} />
+                        <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Loading spreadsheet data...</Typography>
                     </Box>
                 ) : (
                     <div className="ag-theme-alpine" style={{ width: '100%', height: '100%' }}>
@@ -403,21 +403,26 @@ const SpreadsheetView = () => {
             </Box>
 
             {/* Sheet tabs */}
-            <Paper elevation={1} sx={{ flexShrink: 0, borderTop: '1px solid #e0e0e0', borderRadius: 0 }}>
+            <Paper elevation={0} className="glass-panel" sx={{ flexShrink: 0, borderTop: '1px solid rgba(0,0,0,0.05)', borderRadius: 0 }}>
                 {sheets.length > 0 ? (
                     <Tabs
                         value={currentSheetIdx}
                         onChange={handleTabChange}
                         variant="scrollable"
                         scrollButtons="auto"
-                        sx={{ minHeight: 36, '& .MuiTab-root': { minHeight: 36, py: 0.5 } }}
+                        sx={{ 
+                            minHeight: 44, 
+                            '& .MuiTab-root': { minHeight: 44, py: 1, fontWeight: 600, color: '#666', textTransform: 'none', fontSize: '14px' },
+                            '& .Mui-selected': { color: '#1e3c72 !important' },
+                            '& .MuiTabs-indicator': { backgroundColor: '#1e3c72', height: 3, borderRadius: '3px 3px 0 0' }
+                        }}
                     >
                         {sheets.map((s, idx) => (
                             <Tab key={s.id} label={s.sheetName} id={`sheet-tab-${idx}`} />
                         ))}
                     </Tabs>
                 ) : (
-                    <Box sx={{ p: 1, color: 'text.secondary', fontSize: 14 }}>
+                    <Box sx={{ p: 1.5, color: 'text.secondary', fontSize: 14, fontWeight: 500 }}>
                         No sheets found in this workbook.
                     </Box>
                 )}

@@ -77,62 +77,75 @@ const Dashboard = () => {
     };
 
     return (
-        <Box>
+        <Box sx={{ animation: 'fadeIn 0.5s ease' }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-                <Typography variant="h4">Your Workbooks</Typography>
-                <Box display="flex" gap={1}>
+                <Typography variant="h4" className="app-header-title">Your Workbooks</Typography>
+                <Box display="flex" gap={2}>
                     <Button
+                        className="glass-panel"
                         variant="outlined"
                         startIcon={<AddIcon />}
                         onClick={() => setCreateDialogOpen(true)}
+                        sx={{ borderRadius: '12px', border: '1px solid #1e3c72', color: '#1e3c72', fontWeight: 600, textTransform: 'none' }}
                     >
-                        Create New Workbook
+                        Create Blank
                     </Button>
                     <Button
                         component="label"
-                        variant="contained"
+                        className="gradient-btn"
                         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CloudUploadIcon />}
                         disabled={loading}
+                        sx={{ borderRadius: '12px', px: 3, fontWeight: 600, textTransform: 'none' }}
                     >
-                        Upload Excel File
+                        Upload Excel
                         <input type="file" hidden accept=".xlsx,.xls" onChange={handleUpload} />
                     </Button>
                 </Box>
             </Box>
 
-            <TableContainer component={Paper}>
+            <TableContainer component={Paper} className="glass-panel" sx={{ borderRadius: '16px', overflow: 'hidden' }}>
                 <Table>
-                    <TableHead>
+                    <TableHead sx={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
                         <TableRow>
-                            <TableCell><b>File Name</b></TableCell>
-                            <TableCell><b>Upload Date</b></TableCell>
-                            <TableCell><b>Version</b></TableCell>
-                            <TableCell><b>Status</b></TableCell>
-                            <TableCell align="right"><b>Actions</b></TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#2a5298' }}>File Name</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#2a5298' }}>Upload Date</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#2a5298' }}>Version</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#2a5298' }}>Status</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600, color: '#2a5298' }}>Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {workbooks.map((wb) => (
-                            <TableRow key={wb.id} hover>
+                            <TableRow key={wb.id} className="hover-row">
                                 <TableCell>
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                        <InsertDriveFileIcon color="primary" />
+                                    <Box display="flex" alignItems="center" gap={1.5} sx={{ fontWeight: 500 }}>
+                                        <Box sx={{ p: 1, borderRadius: '8px', background: 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', display: 'flex' }}>
+                                            <InsertDriveFileIcon sx={{ color: 'white', fontSize: 20 }} />
+                                        </Box>
                                         {wb.fileName}
                                     </Box>
                                 </TableCell>
-                                <TableCell>{new Date(wb.uploadDate).toLocaleString()}</TableCell>
-                                <TableCell>v{wb.currentVersion}</TableCell>
-                                <TableCell><Chip label={wb.status} color="success" size="small" /></TableCell>
+                                <TableCell sx={{ color: '#555' }}>{new Date(wb.uploadDate).toLocaleString()}</TableCell>
+                                <TableCell sx={{ color: '#555' }}>v{wb.currentVersion}</TableCell>
+                                <TableCell>
+                                    <Chip label={wb.status} size="small" sx={{ backgroundColor: 'rgba(76, 175, 80, 0.1)', color: '#2e7d32', fontWeight: 600, border: '1px solid rgba(76, 175, 80, 0.3)' }} />
+                                </TableCell>
                                 <TableCell align="right">
                                     <Box display="flex" justifyContent="flex-end" alignItems="center" gap={1}>
-                                        <Button variant="outlined" onClick={() => navigate(`/workbook/${wb.id}`)}>
+                                        <Button 
+                                            variant="contained" 
+                                            size="small"
+                                            className="gradient-btn"
+                                            sx={{ borderRadius: '8px', textTransform: 'none', px: 2 }}
+                                            onClick={() => navigate(`/workbook/${wb.id}`)}
+                                        >
                                             Open
                                         </Button>
                                         <IconButton
-                                            color="error"
                                             onClick={() => handleDeleteWorkbook(wb)}
                                             disabled={deleting === wb.id}
                                             size="small"
+                                            sx={{ color: '#d32f2f', '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' } }}
                                         >
                                             {deleting === wb.id ? <CircularProgress size={20} /> : <DeleteIcon />}
                                         </IconButton>
@@ -142,8 +155,8 @@ const Dashboard = () => {
                         ))}
                         {workbooks.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                                    <Typography color="textSecondary">No workbooks found. Upload one to get started!</Typography>
+                                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                                    <Typography color="textSecondary" sx={{ fontSize: '1.1rem' }}>No workbooks found. Upload one to get started!</Typography>
                                 </TableCell>
                             </TableRow>
                         )}

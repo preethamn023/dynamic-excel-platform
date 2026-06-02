@@ -8,13 +8,19 @@ import TableChartIcon from '@mui/icons-material/TableChart';
 function Navigation() {
     const navigate = useNavigate();
     return (
-        <AppBar position="static" className="app-header">
+        <AppBar position="static" className="app-header" elevation={0}>
             <Toolbar>
-                <TableChartIcon sx={{ mr: 1 }} />
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+                <TableChartIcon sx={{ mr: 1, color: '#2a5298' }} />
+                <Typography variant="h5" component="div" sx={{ flexGrow: 1 }} className="app-header-title">
                     Dynamic Excel Platform
                 </Typography>
-                <Button color="inherit" onClick={() => navigate('/')}>Dashboard</Button>
+                <Button 
+                    className="gradient-btn" 
+                    sx={{ borderRadius: '20px', px: 3, textTransform: 'none', fontWeight: 600 }}
+                    onClick={() => navigate('/')}
+                >
+                    Dashboard
+                </Button>
             </Toolbar>
         </AppBar>
     );
