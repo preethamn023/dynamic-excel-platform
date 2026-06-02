@@ -31,9 +31,12 @@ public class FormulaDependencyBuilder {
 
         for (Cell dependentCell : allCells) {
             if (dependentCell.getFormulaExpression() != null) {
+                java.util.Set<String> uniqueRefs = new java.util.HashSet<>();
                 Matcher matcher = CELL_REF_PATTERN.matcher(dependentCell.getFormulaExpression());
                 while (matcher.find()) {
-                    String sourceRef = matcher.group(1);
+                    uniqueRefs.add(matcher.group(1));
+                }
+                for (String sourceRef : uniqueRefs) {
                     // Find the source cell in the same sheet
                     allCells.stream()
                             .filter(c -> c.getCellRef().equals(sourceRef))
